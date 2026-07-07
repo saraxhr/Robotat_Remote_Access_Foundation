@@ -54,13 +54,12 @@ El sistema requiere el **broker MQTT Mosquitto**, que actúa como intermediario 
 El archivo `mosquitto.conf` incluido en este repositorio define la configuración básica del broker para el entorno local del Robotat:
 
 ```bash
-listener 1880 192.168.50.200
-allow_anonymous true
-
-persistence true
-persistence_location C:\Program Files\mosquitto\data\
-#log_dest file C:\Program Files\mosquitto\log\mosquitto.log
-
+<MQTT_BROKER_IP>
+<MQTT_USERNAME>
+<MQTT_PASSWORD>
+<MOSQUITTO_DATA_PATH>
+<MOSQUITTO_LOG_PATH>
+<CERTIFICATE_PATH>
 
 
 
