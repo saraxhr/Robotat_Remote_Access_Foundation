@@ -80,16 +80,16 @@ Ejemplo:
 ```python
 CAMERAS = {
     "1": {
-        "ip": "192.168.50.211",
-        "user": "admin",
-        "password": "UVG12345678",
-        "rtsp": "rtsp://admin:UVG12345678@192.168.50.211:554/cam/realmonitor?channel=1&subtype=1",
+        "ip": "insert camera IP address",
+        "user": "insert camera username",
+        "password": "insertcameraspassword",
+        "rtsp": "rtsp://usr:password@IP:554/cam/realmonitor?channel=1&subtype=1",
     },
     "2": {
-        "ip": "192.168.50.212",
-        "user": "admin",
-        "password": "12345678UVG",
-        "rtsp": "rtsp://admin:12345678UVG@192.168.50.212:554/cam/realmonitor?channel=1&subtype=1",
+        "ip": "insert camera IP address",
+        "user": "insert camera username",
+        "password": "insertcameraspassword",
+        "rtsp": "rtsp://usr:password@IP:554/cam/realmonitor?channel=1&subtype=1",
     },
 }
 ```
