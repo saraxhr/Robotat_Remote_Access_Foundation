@@ -1,0 +1,262 @@
+# 🔗 MQTT Bridge — Robotat UVG
+
+## 📘 Overview
+
+The **`mqtt_bridge`** folder implements the **MQTT-WebSocket communication bridge** for the Robotat UVG system.
+
+Its main function is to connect the **Mosquitto broker** with the **Django server running with ASGI/Daphne** and the **web frontend**, allowing real-time data transmission from the robots and the motion-capture system.
+
+The module operates in two directions:
+
+* **Reception:** listens to MQTT messages, such as telemetry or MoCap data, and forwards them to the frontend through WebSockets.
+* **Transmission:** receives commands from the Django backend and publishes them to the robots, such as Pololu or Crazyflie agents.
+
+---
+
+## ⚙️ Required Dependencies
+
+Make sure to install the following libraries before running the project with **Daphne**:
+
+```bash
+# Installs Django as the main backend framework.
+pip install django
+
+# Installs Django REST Framework for API development.
+pip install djangorestframework
+
+# Installs Django Channels to support WebSocket communication.
+pip install channels
+
+# Installs the Redis backend for Django Channels, if Redis is used as the channel layer.
+pip install channels_redis
+
+# Installs the MQTT client library used to communicate with the Mosquitto broker.
+pip install paho-mqtt
+
+# Installs Daphne as the ASGI server for Django and WebSockets.
+pip install daphne
+```
+
+> 💡 `channels_redis` is required if Redis is used as the Channel Layer backend for Django Channels.
+
+---
+
+## 📂 File Structure
+
+```text
+mqtt_bridge/
+│
+├── __init__.py        # Marks this folder as a Python package and links the MqttBridgeConfig configuration.
+├── apps.py            # Automatically starts the MQTT client when the Django server starts.
+├── mqtt_client.py     # Main MQTT client for connection, publishing, and topic subscription.
+├── consumers.py       # Asynchronous consumer that forwards MQTT messages through WebSockets.
+├── routing.py         # Defines WebSocket routes, such as ws://<server>/ws/mqtt/.
+└── ...
+```
+
+---
+
+## 🧠 General Operation
+
+### 🔹 1. Automatic Initialization
+
+When the Django server starts with **Daphne**, the `MqttBridgeConfig` class defined in `apps.py` executes the `start_mqtt_client()` function.
+
+This function:
+
+* Connects to the Mosquitto broker.
+* Subscribes to the configured topics, such as `mocap/#` or robot telemetry topics.
+* Starts a parallel thread using `loop_forever()` to keep the MQTT listener active.
+
+---
+
+### 🔹 2. Internal Communication — MQTT to Channels
+
+Each received MQTT message is sent to the Django Channel Layer using:
+
+```python
+# Converts the asynchronous channel-layer call into a synchronous function call.
+async_to_sync(channel_layer.group_send)(
+    # Defines the WebSocket group that will receive the MQTT message.
+    "mqtt_logs",
+
+    # Sends the MQTT topic and payload to the WebSocket consumer.
+    {
+        # Defines the consumer method that will process the event.
+        "type": "mqtt_message",
+
+        # Includes the MQTT topic from which the message was received.
+        "topic": msg.topic,
+
+        # Includes the decoded MQTT payload.
+        "payload": payload,
+    }
+)
+```
+
+Then, the **`MqttConsumer`** listens for these events and forwards them to connected WebSocket clients.
+
+---
+
+### 🔹 3. Reverse Communication — Django to MQTT
+
+From the backend, for example through the `/api/enviar-comando/` endpoint, commands can be published to the robots using:
+
+```python
+# Imports the function used to publish MQTT command packets.
+from mqtt_bridge.mqtt_client import publish_command
+
+# Publishes the command packet to the configured MQTT command topic.
+publish_command(packet)
+```
+
+---
+
+## 🔧 Running the Server
+
+The project uses **Daphne** as the ASGI server, which supports Django Channels and WebSockets.
+
+Run the backend from the project root:
+
+```bash
+# Runs the Django ASGI application on port 8000 using Daphne.
+daphne -p 8000 robotat_web.asgi:application
+```
+
+> 📌 Replace `robotat_web` with the name of the root project module that contains `asgi.py`.
+
+By default, the server will be available at:
+
+```text
+http://127.0.0.1:8000/
+```
+
+---
+
+## 🌐 WebSocket Routes
+
+| Route       | Description                                                                      |
+| ----------- | -------------------------------------------------------------------------------- |
+| `/ws/mqtt/` | WebSocket channel that receives real-time messages forwarded by the MQTT client. |
+
+Example connection from the frontend using JavaScript:
+
+```javascript
+// Creates a WebSocket connection to the MQTT bridge endpoint.
+const socket = new WebSocket("ws://127.0.0.1:8000/ws/mqtt/");
+
+// Defines the function that runs every time a WebSocket message is received.
+socket.onmessage = (event) => {
+  // Converts the received JSON string into a JavaScript object.
+  const data = JSON.parse(event.data);
+
+  // Prints the received MQTT message in the browser console.
+  console.log("MQTT message received:", data);
+};
+```
+
+---
+
+## 🛰️ MQTT Client Parameters
+
+For the public repository, deployment-specific values should be replaced with placeholders or environment variables.
+
+| Parameter         | Description                               | Example / Placeholder |
+| ----------------- | ----------------------------------------- | --------------------- |
+| `BROKER`          | Mosquitto broker host or IP address       | `<MQTT_BROKER_HOST>`  |
+| `PORT`            | MQTT broker port                          | `1880`                |
+| `TOPIC`           | General subscription topic for MoCap data | `"mocap/#"`           |
+| `COMMAND_TOPIC`   | Topic used to send commands to a robot    | `"pololu01/cmd"`      |
+| `TELEMETRY_TOPIC` | Topic used to receive robot telemetry     | `"pololu01/tel"`      |
+
+Example sanitized configuration:
+
+```python
+# Imports the os module to read environment variables.
+import os
+
+# Reads the MQTT broker host from an environment variable or uses a placeholder.
+BROKER = os.getenv("MQTT_BROKER_HOST", "<MQTT_BROKER_HOST>")
+
+# Reads the MQTT broker port from an environment variable and converts it to an integer.
+PORT = int(os.getenv("MQTT_BROKER_PORT", "1880"))
+
+# Defines the general MQTT topic used to receive MoCap-related messages.
+TOPIC = os.getenv("MQTT_TOPIC", "mocap/#")
+
+# Defines the MQTT topic used to publish command packets to the robot.
+COMMAND_TOPIC = os.getenv("MQTT_COMMAND_TOPIC", "pololu01/cmd")
+
+# Defines the MQTT topic used to receive telemetry packets from the robot.
+TELEMETRY_TOPIC = os.getenv("MQTT_TELEMETRY_TOPIC", "pololu01/tel")
+```
+
+---
+
+## 📤 MQTT Publishing Example
+
+```python
+# Defines a generic command packet to be published through MQTT.
+packet = {
+    # Identifies the source of the packet.
+    "src": 1,
+
+    # Defines the source packet timestamp or sequence-related field.
+    "pts": 5,
+
+    # Defines the target packet timestamp or sequence-related field.
+    "ptp": 10,
+
+    # Identifies the packet type or command identifier.
+    "pid": 3,
+
+    # Includes a checksum value used to validate the packet integrity.
+    "cks": "a1b2c3",
+
+    # Contains the command payload sent to the robot.
+    "pld": {
+        # Defines the left wheel velocity.
+        "v_l": 0.2,
+
+        # Defines the right wheel velocity.
+        "v_r": 0.2
+    }
+}
+
+# Imports the function used to publish command packets through MQTT.
+from mqtt_bridge.mqtt_client import publish_command
+
+# Publishes the command packet to the configured MQTT command topic.
+publish_command(packet)
+```
+
+---
+
+## 🧩 Integration with Django Channels
+
+The `routing.py` file defines the WebSocket routes for this application, while the main `asgi.py` file integrates them with the project’s global router:
+
+```python
+# Imports the router used to separate HTTP and WebSocket protocols.
+from channels.routing import ProtocolTypeRouter, URLRouter
+
+# Imports the WebSocket URL patterns defined by the MQTT bridge application.
+from mqtt_bridge.routing import websocket_urlpatterns
+
+# Defines the ASGI application and routes WebSocket traffic to the MQTT bridge.
+application = ProtocolTypeRouter({
+    # Routes WebSocket connections to the MQTT bridge URL patterns.
+    "websocket": URLRouter(websocket_urlpatterns),
+})
+```
+
+---
+
+## ⚠️ Public Repository Notes
+
+* Do not upload real broker IP addresses, internal network information, usernames, passwords, tokens, or certificates.
+* Use placeholders such as `<MQTT_BROKER_HOST>` or environment variables instead of real deployment values.
+* The public repository should document the architecture and provide reproducible non-sensitive configuration examples.
+* Local deployment files such as real `.env` files or production-specific Mosquitto configuration files should remain private.
+
+---
