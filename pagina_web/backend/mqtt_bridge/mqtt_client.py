@@ -39,7 +39,7 @@ from channels.layers import get_channel_layer  # Acceso al canal interno de Djan
 # ---------------------------------------------------------------
 # Parámetros del broker
 # ---------------------------------------------------------------
-BROKER = "192.168.50.200"   # Dirección IP del broker Mosquitto
+BROKER = ""   # Dirección IP del broker Mosquitto
 PORT   = 1880               # Puerto del broker MQTT
 TOPIC  = "mocap/#"          # Mantiene compatibilidad con la versión original
 QOS    = 0                  # Nivel de servicio (QoS = 0; sin confirmación)
