@@ -108,7 +108,7 @@ socket.onmessage = (event) => {
 
 | Parámetro | Descripción | Valor por defecto |
 |------------|--------------|------------------|
-| `BROKER` | IP del broker Mosquitto | `192.168.50.200` |
+| `BROKER` | IP del broker Mosquitto | `Insertar IP` |
 | `PORT` | Puerto MQTT | `1880` |
 | `TOPIC` | Suscripción general (MoCap) | `"mocap/#"` |
 | `COMMAND_TOPIC` | Tópico de comandos al Pololu | `"pololu01/cmd"` |
