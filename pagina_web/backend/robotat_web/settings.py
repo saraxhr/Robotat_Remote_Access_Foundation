@@ -42,9 +42,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent       # Ruta raíz del proyect
 # =============================================
 # Seguridad básica y modo debug (solo desarrollo)
 # =============================================
-SECRET_KEY = 'django-insecure-5fimo2acvwjh&cg2890#@xf$&44tg(cnpoo-zer31s8#mw#aw-'  # Clave secreta (solo para entorno local)
+SECRET_KEY = ''  # Clave secreta (solo para entorno local)
 DEBUG = True                                            # Activa el modo de depuración, mostrar errores detallados
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost']              # Lista de hosts autorizados para servir la aplicación
+ALLOWED_HOSTS = ['IP_HOST', 'localhost']              # Lista de hosts autorizados para servir la aplicación
 
 
 # =================
@@ -194,7 +194,7 @@ CORS_ALLOWED_ORIGINS = [
 # =================
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",                          # Permite confianza en solicitudes desde el frontend local
-    "http://127.0.0.1:5173",
+    "http://IPLOCALHOST:5173",
 ]
 
 
